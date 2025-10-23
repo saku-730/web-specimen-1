@@ -945,10 +945,6 @@ components:
         body_length:
           type: string
           example: "10mm"
-        created_at:
-          type: string
-          format: date-time
-          example: "2024-01-01T00:00:00Z"
         language_id:
           type: integer
           example: 1
