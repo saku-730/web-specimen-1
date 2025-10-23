@@ -5,6 +5,7 @@ import (
 	"github.com/saku-730/web-specimen/backend/internal/entity"
 	"github.com/saku-730/web-specimen/backend/internal/model"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	//"fmt"
 )
 
@@ -222,8 +223,11 @@ func (r *occurrenceRepository) FindByID(id uint) (*entity.Occurrence, error) {
 
 func (r *occurrenceRepository) FindByIDForUpdate(tx *gorm.DB, id uint) (*entity.Occurrence, error) {
 	var occurrence entity.Occurrence
-	// GORMの .Clauses(clause.Locking{Strength: "UPDATE"}) を使って行ロックをかけるのが堅牢
-	err := tx.Preload(clause.Associations).First(&occurrence, id).Error // Preloadで関連データを読み込む
+
+	err := tx.
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Preload(clause.Associations).
+		First(&occurrence, id).Error 
 	return &occurrence, err
 }
 

@@ -597,39 +597,49 @@ func (s *occurrenceService) UpdateOccurrence(id uint, req *model.OccurrenceUpdat
 	var updatedOccurrence *entity.Occurrence
 
 	err := s.db.Transaction(func(tx *gorm.DB) error {
-		// 1. 更新対象の既存データを取得 (Preloadしておく)
+		// get existing occurrence data
 		occurrence, err := s.occRepo.FindByIDForUpdate(tx, id)
 		if err != nil {
-			return err // データが見つからない場合など
+			return fmt.Errorf("Can't find occurrence data by id: %w",err)
 		}
 
-		// --- 2. リクエスト(req)のデータで既存データ(occurrence)を上書き ---
+		// update occurrence data with req
 		
-		// トップレベルの項目を更新
+		// occurrence items
 		if req.ProjectID != nil { occurrence.ProjectID = req.ProjectID }
 		if req.IndividualID != nil { occurrence.IndividualID = req.IndividualID }
-		// ... 他のトップレベル項目も同様に if req.XXX != nil { occurrence.XXX = req.XXX } で更新 ...
-		if req.CreatedAt != nil {
-			occurrence.CreatedAt = req.CreatedAt
-			occurrence.Timezone = formatTimezone(req.CreatedAt)
-		}
+		if req.Lifestage != nil { occurrence.Lifestage = req.Lifestage }
+		if req.Sex != nil { occurrence.Sex = req.Sex }
+		if req.BodyLength != nil { occurrence.BodyLength = req.BodyLength }
+		if req.LanguageID != nil { occurrence.LanguageID = req.LanguageID }
+		if req.Note != nil { occurrence.Note = req.Note }
 
-		// Classification の更新 (もし送られてきていれば)
+		// update Classification (if it was sent)
 		var classification *entity.ClassificationJSON
-		if req.Classification != nil {
-			classMap := map[string]interface{}{ /* ... reqからmapを作成 ... */ }
-			classJSON, _ := json.Marshal(classMap)
+		if req.Classification != nil {//update info include classification
+			classMap := map[string]interface{}{ 
+				"species": req.Classification.Species, 
+				"genus": req.Classification.Genus,
+				"family": req.Classification.Family,
+				"order": req.Classification.Order,
+				"class": req.Classification.Class,
+				"phylum": req.Classification.Phylum,
+				"kingdom": req.Classification.Kingdom,
+				"others": req.Classification.Others,
+			}
+			classJSON, _ := json.Marshal(classMap) 
 			// 既存の Classification があればIDを維持、なければ新規
+
 			classification = occurrence.ClassificationJSON // Preload されていれば既存のものが取れる
-            if classification == nil {
-                 classification = &entity.ClassificationJSON{}
-            }
+			if classification == nil { //no existing data
+				classification = &entity.ClassificationJSON{}
+			}
 			classification.ClassClassification = classJSON
-			if err := s.occRepo.UpsertClassification(tx, classification); err != nil { return err }
+			if err := s.occRepo.UpsertClassification(tx, classification); err != nil { return fmt.Errorf("Repository UpsertClassification error:%w",err) }
 			occurrence.ClassificationID = &classification.ClassificationID
 		}
 
-		// Place の更新 (もし送られてきていれば)
+		// update Place (if it was sent)
 		var place *entity.Place
         var placeName *entity.PlaceNamesJSON
 		if (req.PlaceName != nil && *req.PlaceName != "") || (req.Latitude != nil && *req.Latitude != 0) || (req.Longitude != nil && *req.Longitude != 0) {
