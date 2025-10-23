@@ -218,3 +218,71 @@ func (r *occurrenceRepository) FindByID(id uint) (*entity.Occurrence, error) {
 
 	return &occurrence, err
 }
+
+
+func (r *occurrenceRepository) FindByIDForUpdate(tx *gorm.DB, id uint) (*entity.Occurrence, error) {
+	var occurrence entity.Occurrence
+	// GORMの .Clauses(clause.Locking{Strength: "UPDATE"}) を使って行ロックをかけるのが堅牢
+	err := tx.Preload(clause.Associations).First(&occurrence, id).Error // Preloadで関連データを読み込む
+	return &occurrence, err
+}
+
+// UpdateOccurrence: occurrence 本体を更新
+func (r *occurrenceRepository) UpdateOccurrence(tx *gorm.DB, occurrence *entity.Occurrence) error {
+	// Save は主キーがあればUpdate、なければInsertする。関連データも更新しようとする場合がある
+	return tx.Save(occurrence).Error
+}
+
+// UpsertClassification, UpsertPlace なども Save で実装可能
+func (r *occurrenceRepository) UpsertClassification(tx *gorm.DB, classification *entity.ClassificationJSON) error {
+    if classification == nil { return nil }
+	return tx.Save(classification).Error
+}
+func (r *occurrenceRepository) UpsertPlace(tx *gorm.DB, place *entity.Place, placeName *entity.PlaceNamesJSON) error {
+    if place == nil || placeName == nil { return nil }
+	if err := tx.Save(placeName).Error; err != nil { return err }
+	place.PlaceNameID = &placeName.PlaceNameID
+	return tx.Save(place).Error
+}
+
+// UpsertObservations: リストの更新・追加
+func (r *occurrenceRepository) UpsertObservations(tx *gorm.DB, occurrenceID uint, observations []*entity.Observation) error {
+	if len(observations) == 0 { return nil } // データがなければ何もしない
+	
+    // GORMのアソシエーション機能を使うか、ループでSaveするのが一般的
+    // 例: ループでSaveする場合
+    for _, obs := range observations {
+        obs.OccurrenceID = &occurrenceID // 親のIDをセット
+        if err := tx.Save(obs).Error; err != nil {
+            return err // 途中でエラーがあれば中断
+        }
+    }
+	return nil
+}
+
+// UpsertSpecimens, UpsertIdentifications も同様に実装...
+func (r *occurrenceRepository) UpsertSpecimens(tx *gorm.DB, occurrenceID uint, specimens []*entity.Specimen, makeSpecimens []*entity.MakeSpecimen) error {
+	// ... 実装 (SpecimenとMakeSpecimenの整合性に注意)
+    if len(specimens) == 0 { return nil }
+    // ここは Specimens と MakeSpecimens の数が一致している前提
+    for i, spec := range specimens {
+        spec.OccurrenceID = &occurrenceID
+        if err := tx.Save(spec).Error; err != nil { return err }
+        // 対応する MakeSpecimen も更新または作成
+        if i < len(makeSpecimens) {
+            makeSpec := makeSpecimens[i]
+            makeSpec.OccurrenceID = &occurrenceID
+            makeSpec.SpecimenID = &spec.SpecimenID // 新規作成の場合も Save の後ならIDが取れる
+             if err := tx.Save(makeSpec).Error; err != nil { return err }
+        }
+    }
+	return nil
+}
+func (r *occurrenceRepository) UpsertIdentifications(tx *gorm.DB, occurrenceID uint, identifications []*entity.Identification) error {
+	if len(identifications) == 0 { return nil }
+    for _, ident := range identifications {
+        ident.OccurrenceID = &occurrenceID
+        if err := tx.Save(ident).Error; err != nil { return err }
+    }
+	return nil
+}

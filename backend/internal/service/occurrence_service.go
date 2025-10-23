@@ -27,6 +27,7 @@ type OccurrenceService interface {
 	AttachFiles (occurrenceID uint, userID uint, files []*multipart.FileHeader) ([]string, error)
 	Search(query *model.SearchQuery) (*model.SearchResponse, error)
 	GetOccurrenceDetail(id uint) (*model.OccurrenceDetailResponse, error)
+	UpdateOccurrence(id uint, req *model.OccurrenceUpdate) (*entity.Occurrence, error)
 }
 
 // occurrenceService構造体。必要なリポジトリを全部持たせるのだ。
@@ -591,3 +592,101 @@ func (s *occurrenceService) GetOccurrenceDetail(id uint) (*model.OccurrenceDetai
 
 	return response, nil
 }
+
+func (s *occurrenceService) UpdateOccurrence(id uint, req *model.OccurrenceUpdate) (*entity.Occurrence, error) {
+	var updatedOccurrence *entity.Occurrence
+
+	err := s.db.Transaction(func(tx *gorm.DB) error {
+		// 1. 更新対象の既存データを取得 (Preloadしておく)
+		occurrence, err := s.occRepo.FindByIDForUpdate(tx, id)
+		if err != nil {
+			return err // データが見つからない場合など
+		}
+
+		// --- 2. リクエスト(req)のデータで既存データ(occurrence)を上書き ---
+		
+		// トップレベルの項目を更新
+		if req.ProjectID != nil { occurrence.ProjectID = req.ProjectID }
+		if req.IndividualID != nil { occurrence.IndividualID = req.IndividualID }
+		// ... 他のトップレベル項目も同様に if req.XXX != nil { occurrence.XXX = req.XXX } で更新 ...
+		if req.CreatedAt != nil {
+			occurrence.CreatedAt = req.CreatedAt
+			occurrence.Timezone = formatTimezone(req.CreatedAt)
+		}
+
+		// Classification の更新 (もし送られてきていれば)
+		var classification *entity.ClassificationJSON
+		if req.Classification != nil {
+			classMap := map[string]interface{}{ /* ... reqからmapを作成 ... */ }
+			classJSON, _ := json.Marshal(classMap)
+			// 既存の Classification があればIDを維持、なければ新規
+			classification = occurrence.ClassificationJSON // Preload されていれば既存のものが取れる
+            if classification == nil {
+                 classification = &entity.ClassificationJSON{}
+            }
+			classification.ClassClassification = classJSON
+			if err := s.occRepo.UpsertClassification(tx, classification); err != nil { return err }
+			occurrence.ClassificationID = &classification.ClassificationID
+		}
+
+		// Place の更新 (もし送られてきていれば)
+		var place *entity.Place
+        var placeName *entity.PlaceNamesJSON
+		if (req.PlaceName != nil && *req.PlaceName != "") || (req.Latitude != nil && *req.Latitude != 0) || (req.Longitude != nil && *req.Longitude != 0) {
+            // ... req から place と placeName を作成 ...
+            place = occurrence.Place // Preload されていれば既存のものが取れる
+            placeName = occurrence.Place.PlaceNamesJSON // Preload されていれば既存のものが取れる
+            if place == nil { place = &entity.Place{} }
+            if placeName == nil { placeName = &entity.PlaceNamesJSON{} }
+            // ... place, placeName のフィールドを req の値で更新 ...
+			if err := s.occRepo.UpsertPlace(tx, place, placeName); err != nil { return err }
+			occurrence.PlaceID = &place.PlaceID
+		}
+
+		// --- リスト項目 (Observation など) の更新・追加 ---
+        var observations []*entity.Observation
+		if req.Observations != nil {
+			for _, obsReq := range req.Observations {
+				obs := &entity.Observation{}
+                if obsReq.ObservationID != nil { // IDがあれば既存データを更新
+                    obs.ObservationsID = *obsReq.ObservationID // IDをセットして Save で更新させる
+                }
+				// req の値で obs のフィールドを埋める
+                obs.UserID = obsReq.ObservationUserID
+                obs.ObservationMethodID = obsReq.ObservationMethodID
+                // ...
+				observations = append(observations, obs)
+			}
+			if err := s.occRepo.UpsertObservations(tx, id, observations); err != nil { return err }
+		}
+
+        // Specimen, Identification も同様のロジックでリストを処理...
+        var specimens []*entity.Specimen
+        var makeSpecimens []*entity.MakeSpecimen
+        if req.Specimens != nil {
+            // ... req.Specimens から specimens と makeSpecimens のスライスを作成 ...
+            if err := s.occRepo.UpsertSpecimens(tx, id, specimens, makeSpecimens); err != nil { return err }
+        }
+        var identifications []*entity.Identification
+        if req.Identifications != nil {
+            // ... req.Identifications から identifications のスライスを作成 ...
+            if err := s.occRepo.UpsertIdentifications(tx, id, identifications); err != nil { return err }
+        }
+
+		// 最後に Occurrence 自体を保存 (変更があった場合)
+		if err := s.occRepo.UpdateOccurrence(tx, occurrence); err != nil {
+			return err
+		}
+
+		updatedOccurrence = occurrence // 最後に更新されたデータを保持
+		return nil // トランザクション成功
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return updatedOccurrence, nil
+}
+
+
