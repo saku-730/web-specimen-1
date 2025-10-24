@@ -5,7 +5,7 @@ import (
 	"github.com/saku-730/web-specimen/backend/internal/entity"
 	"github.com/saku-730/web-specimen/backend/internal/model"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
+//	"gorm.io/gorm/clause"
 	//"fmt"
 )
 
@@ -15,6 +15,13 @@ type OccurrenceRepository interface {
 	CreateOccurrence(tx *gorm.DB, occurrence *entity.Occurrence, classification *entity.ClassificationJSON, place *entity.Place, placeName *entity.PlaceNamesJSON, observation *entity.Observation, specimen *entity.Specimen, makeSpecimen *entity.MakeSpecimen, identification *entity.Identification) (*entity.Occurrence, error)
 	Search(query *model.SearchQuery) ([]entity.Occurrence, int64, error)
 	FindByID(id uint) (*entity.Occurrence, error)
+
+	UpdateOccurrence(tx *gorm.DB, occurrence *entity.Occurrence) error
+	UpsertClassification(tx *gorm.DB, classification *entity.ClassificationJSON) error
+	UpsertPlace(tx *gorm.DB, place *entity.Place, placeName *entity.PlaceNamesJSON) error
+	UpsertObservations(tx *gorm.DB, occurrenceID uint, observations []*entity.Observation) error
+	UpsertSpecimens(tx *gorm.DB, occurrenceID uint, specimens []*entity.Specimen, makeSpecimens []*entity.MakeSpecimen) error
+	UpsertIdentifications(tx *gorm.DB, occurrenceID uint, identifications []*entity.Identification) error
 }
 
 type occurrenceRepository struct {
@@ -221,15 +228,6 @@ func (r *occurrenceRepository) FindByID(id uint) (*entity.Occurrence, error) {
 }
 
 
-func (r *occurrenceRepository) FindByIDForUpdate(tx *gorm.DB, id uint) (*entity.Occurrence, error) {
-	var occurrence entity.Occurrence
-
-	err := tx.
-		Clauses(clause.Locking{Strength: "UPDATE"}).
-		Preload(clause.Associations).
-		First(&occurrence, id).Error 
-	return &occurrence, err
-}
 
 // UpdateOccurrence: occurrence 本体を更新
 func (r *occurrenceRepository) UpdateOccurrence(tx *gorm.DB, occurrence *entity.Occurrence) error {
@@ -254,7 +252,7 @@ func (r *occurrenceRepository) UpsertObservations(tx *gorm.DB, occurrenceID uint
 	if len(observations) == 0 { return nil } // データがなければ何もしない
 	
     // GORMのアソシエーション機能を使うか、ループでSaveするのが一般的
-    // 例: ループでSaveする場合
+    // ループでSaveする場合
     for _, obs := range observations {
         obs.OccurrenceID = &occurrenceID // 親のIDをセット
         if err := tx.Save(obs).Error; err != nil {
@@ -264,7 +262,7 @@ func (r *occurrenceRepository) UpsertObservations(tx *gorm.DB, occurrenceID uint
 	return nil
 }
 
-// UpsertSpecimens, UpsertIdentifications も同様に実装...
+// UpsertSpecimens
 func (r *occurrenceRepository) UpsertSpecimens(tx *gorm.DB, occurrenceID uint, specimens []*entity.Specimen, makeSpecimens []*entity.MakeSpecimen) error {
 	// ... 実装 (SpecimenとMakeSpecimenの整合性に注意)
     if len(specimens) == 0 { return nil }

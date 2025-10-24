@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"gorm.io/gorm"
+	"errors"
 
 	"github.com/gin-gonic/gin"
 	"github.com/saku-730/web-specimen/backend/internal/model"
@@ -164,7 +165,7 @@ func (h *occurrenceHandler) GetOccurrenceDetail(c *gin.Context) {
 }
 
 
-func (h *occurrenceHandler) updateOccurrence(c *gin.Context) {
+func (h *occurrenceHandler) UpdateOccurrence(c *gin.Context) {
 	// get ID from path paramate
 	idStr := c.Param("occurrence_id")
 	id, err := strconv.ParseUint(idStr, 10, 32)

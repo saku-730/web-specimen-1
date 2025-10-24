@@ -234,4 +234,60 @@ type AttachmentDetail struct {
 }
 
 
+type OccurrenceUpdate struct {
+	UserID         int                     `json:"user_id"`
+	ProjectID      *uint                    `json:"project_id"`
+	IndividualID   *int                    `json:"individual_id"`
+	Lifestage      *string                 `json:"lifestage"`
+	Sex            *string                 `json:"sex"`
+	BodyLength     *string                 `json:"body_length"`
+	CreatedAt      *time.Time              `json:"created_at"`
+	LanguageID     *uint                    `json:"language_id"`
+	Latitude       *float64                `json:"latitude"`
+	Longitude      *float64                `json:"longitude"`
+	PlaceName      *string                 `json:"place_name"`
+	Note           *string                 `json:"note"`
+	Classification *ClassificationUpdate   `json:"classification"`
+	Observations   []ObservationUpdate   `json:"observation"`   // ⬅️ リスト
+	Specimens      []SpecimenUpdate      `json:"specimen"`      // ⬅️ リスト
+	Identifications []IdentificationUpdate `json:"identification"` // ⬅️ リスト
+}
 
+// ClassificationUpdate は ClassificationCreate と同じ内容でOKなのだ
+type ClassificationUpdate struct {
+	Species *string `json:"species"`
+	Genus   *string `json:"genus"`
+	Family  *string `json:"family"`
+	Order   *string `json:"order"`
+	Class   *string `json:"class"`
+	Phylum  *string `json:"phylum"`
+	Kingdom *string `json:"kingdom"`
+	Others  *string `json:"others"`
+}
+
+// ObservationUpdate は、更新対象を特定するためのIDを持てるようにするのだ
+type ObservationUpdate struct {
+	ObservationID       *uint      `json:"observation_id,omitempty"` // ⬅️ nilなら新規、値があれば更新
+	ObservationMethodID *uint       `json:"observation_method_id"`
+	Behavior            *string    `json:"behavior"`
+	ObservedAt          *time.Time `json:"observed_at"`
+	ObservationUserID   *uint       `json:"observation_user_id"`
+}
+
+// SpecimenUpdate も、更新対象を特定するためのIDを持てるようにするのだ
+type SpecimenUpdate struct {
+	SpecimenID        *uint      `json:"specimen_id,omitempty"` // ⬅️ nilなら新規、値があれば更新
+	SpecimenUserID    *uint       `json:"specimen_user_id"`
+	SpecimenMethodsID *uint       `json:"specimen_methods_id"`
+	CreatedAt         *time.Time `json:"created_at"`
+	InstitutionID     *uint       `json:"institution_id"`
+	CollectionID      *string    `json:"collection_id"`
+}
+
+// IdentificationUpdate も、更新対象を特定するためのIDを持てるようにするのだ
+type IdentificationUpdate struct {
+	IdentificationID     *uint      `json:"identification_id,omitempty"` // ⬅️ nilなら新規、値があれば更新
+	IdentificationUserID *uint       `json:"identification_user_id"`
+	IdentifiedAt         *time.Time `json:"identified_at"`
+	SourceInfo           *string    `json:"source_info"`
+}

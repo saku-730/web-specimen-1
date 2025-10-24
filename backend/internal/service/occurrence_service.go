@@ -17,6 +17,8 @@ import (
 	"github.com/saku-730/web-specimen/backend/internal/entity"
 	"github.com/saku-730/web-specimen/backend/internal/model"
 	"github.com/saku-730/web-specimen/backend/internal/repository"
+	"github.com/twpayne/go-geom"
+	"github.com/twpayne/go-geom/encoding/ewkb"
 )
 
 // OccurrenceServiceのインターフェース。役割をはっきり分けたのだ。
@@ -27,7 +29,7 @@ type OccurrenceService interface {
 	AttachFiles (occurrenceID uint, userID uint, files []*multipart.FileHeader) ([]string, error)
 	Search(query *model.SearchQuery) (*model.SearchResponse, error)
 	GetOccurrenceDetail(id uint) (*model.OccurrenceDetailResponse, error)
-	UpdateOccurrence(id uint, req *model.OccurrenceUpdate) (*entity.Occurrence, error)
+	UpdateOccurrence(id uint, req *model.OccurrenceUpdate) (*model.OccurrenceDetailResponse, error)
 }
 
 // occurrenceService構造体。必要なリポジトリを全部持たせるのだ。
@@ -177,7 +179,14 @@ func (s *occurrenceService) CreateOccurrence(req *model.OccurrenceCreate) (*enti
 		placeNameJSON, _ := json.Marshal(placeNameMap)
 		placeName = &entity.PlaceNamesJSON{ClassPlaceName: placeNameJSON}
 
-		place = &entity.Place{Coordinates: &entity.Point{Lat: req.Latitude, Lng: req.Longitude}}
+		var point *ewkb.Point
+		if req.Latitude != nil && req.Longitude != nil {
+			p := geom.NewPoint(geom.XY).MustSetCoords([]float64{*req.Longitude, *req.Latitude})
+			p.SetSRID(4326)
+			point = &ewkb.Point{Point: p}
+		}
+		place = &entity.Place{Coordinates: point}
+
 	}
 
 	// 3. Observation: データが送られてきた場合のみ、entityを作成する。
@@ -363,9 +372,11 @@ func (s *occurrenceService) Search(query *model.SearchQuery) (*model.SearchRespo
 			Note:         occ.Note,
 		}
 
-		if occ.Place != nil && occ.Place.Coordinates != nil {
-			result.Latitude = occ.Place.Coordinates.Lat
-			result.Longitude = occ.Place.Coordinates.Lng
+		if occ.Place != nil && occ.Place.Coordinates != nil && !occ.Place.Coordinates.Empty() {
+			lat := occ.Place.Coordinates.Y()
+			lng := occ.Place.Coordinates.X()
+			result.Latitude = &lat
+			result.Longitude = &lng
 		}
 
 		if occ.Place != nil && occ.Place.PlaceNamesJSON != nil {
@@ -491,10 +502,13 @@ func (s *occurrenceService) GetOccurrenceDetail(id uint) (*model.OccurrenceDetai
 		Note:         occ.Note,
 	}
 
-	if occ.Place != nil && occ.Place.Coordinates != nil {
-		response.Latitude = occ.Place.Coordinates.Lat
-		response.Longitude = occ.Place.Coordinates.Lng
+	if occ.Place != nil && occ.Place.Coordinates != nil && !occ.Place.Coordinates.Empty() {
+	lat := occ.Place.Coordinates.Y()
+	lng := occ.Place.Coordinates.X()
+	response.Latitude = &lat
+	response.Longitude = &lng
 	}
+
 	if occ.Place != nil && occ.Place.PlaceNamesJSON != nil {
 		var placeNameData map[string]string
 		if err := json.Unmarshal(occ.Place.PlaceNamesJSON.ClassPlaceName, &placeNameData); err == nil {
@@ -593,19 +607,18 @@ func (s *occurrenceService) GetOccurrenceDetail(id uint) (*model.OccurrenceDetai
 	return response, nil
 }
 
-func (s *occurrenceService) UpdateOccurrence(id uint, req *model.OccurrenceUpdate) (*entity.Occurrence, error) {
-	var updatedOccurrence *entity.Occurrence
 
+// UpdateOccurrence 
+func (s *occurrenceService) UpdateOccurrence(id uint, req *model.OccurrenceUpdate) (*model.OccurrenceDetailResponse, error) { 
+	
 	err := s.db.Transaction(func(tx *gorm.DB) error {
-		// get existing occurrence data
-		occurrence, err := s.occRepo.FindByIDForUpdate(tx, id)
+		// get exsiting data
+		occurrence, err := s.occRepo.FindByID(id) 
 		if err != nil {
-			return fmt.Errorf("Can't find occurrence data by id: %w",err)
+			return fmt.Errorf("cannot find data by id:%w",err)
 		}
 
-		// update occurrence data with req
-		
-		// occurrence items
+		// update occurrence data by req
 		if req.ProjectID != nil { occurrence.ProjectID = req.ProjectID }
 		if req.IndividualID != nil { occurrence.IndividualID = req.IndividualID }
 		if req.Lifestage != nil { occurrence.Lifestage = req.Lifestage }
@@ -614,89 +627,150 @@ func (s *occurrenceService) UpdateOccurrence(id uint, req *model.OccurrenceUpdat
 		if req.LanguageID != nil { occurrence.LanguageID = req.LanguageID }
 		if req.Note != nil { occurrence.Note = req.Note }
 
-		// update Classification (if it was sent)
+
+		// Classification
 		var classification *entity.ClassificationJSON
-		if req.Classification != nil {//update info include classification
-			classMap := map[string]interface{}{ 
+		if req.Classification != nil {
+
+			if occurrence.ClassificationID != nil {
+                		tx.First(&classification, occurrence.ClassificationID)
+            		}
+			if classification == nil {
+				 classification = &entity.ClassificationJSON{}
+			}
+			classMap := map[string]interface{}{
 				"species": req.Classification.Species, 
-				"genus": req.Classification.Genus,
-				"family": req.Classification.Family,
-				"order": req.Classification.Order,
-				"class": req.Classification.Class,
-				"phylum": req.Classification.Phylum,
-				"kingdom": req.Classification.Kingdom,
+				"genus": req.Classification.Genus, 
+				"family": req.Classification.Family, 
+				"order": req.Classification.Order, 
+				"class": req.Classification.Class, 
+				"phylum": req.Classification.Phylum, 
+				"kingdom": req.Classification.Kingdom, 
 				"others": req.Classification.Others,
 			}
-			classJSON, _ := json.Marshal(classMap) 
-			// 既存の Classification があればIDを維持、なければ新規
-
-			classification = occurrence.ClassificationJSON // Preload されていれば既存のものが取れる
-			if classification == nil { //no existing data
-				classification = &entity.ClassificationJSON{}
-			}
+			classJSON, _ := json.Marshal(classMap)
 			classification.ClassClassification = classJSON
-			if err := s.occRepo.UpsertClassification(tx, classification); err != nil { return fmt.Errorf("Repository UpsertClassification error:%w",err) }
+			// to repository
+			if err := s.occRepo.UpsertClassification(tx, classification); err != nil { return fmt.Errorf("Repository, UpsertClassification error:%w",err) }
 			occurrence.ClassificationID = &classification.ClassificationID
 		}
 
-		// update Place (if it was sent)
+		// Place
 		var place *entity.Place
-        var placeName *entity.PlaceNamesJSON
+		var placeName *entity.PlaceNamesJSON
 		if (req.PlaceName != nil && *req.PlaceName != "") || (req.Latitude != nil && *req.Latitude != 0) || (req.Longitude != nil && *req.Longitude != 0) {
-            // ... req から place と placeName を作成 ...
-            place = occurrence.Place // Preload されていれば既存のものが取れる
-            placeName = occurrence.Place.PlaceNamesJSON // Preload されていれば既存のものが取れる
-            if place == nil { place = &entity.Place{} }
-            if placeName == nil { placeName = &entity.PlaceNamesJSON{} }
-            // ... place, placeName のフィールドを req の値で更新 ...
-			if err := s.occRepo.UpsertPlace(tx, place, placeName); err != nil { return err }
-			occurrence.PlaceID = &place.PlaceID
+			//
+			if occurrence.PlaceID != nil {
+				tx.First(&place, occurrence.PlaceID)
+				if place != nil && place.PlaceNameID != nil {
+				    tx.First(&placeName, place.PlaceNameID)
+				}
+			}
+			if place == nil {
+				place = &entity.Place{} 
+			}
+			if placeName == nil {
+				placeName = &entity.PlaceNamesJSON{} 
+			}
+
+			var name string
+			if req.PlaceName != nil {
+				name = *req.PlaceName 
+			}
+			placeNameMap := map[string]interface{}{"name": name}
+			placeNameJSON, _ := json.Marshal(placeNameMap)
+			placeName.ClassPlaceName = placeNameJSON
+
+			var point *ewkb.Point
+			if req.Latitude != nil && req.Longitude != nil {
+				p := geom.NewPoint(geom.XY).MustSetCoords([]float64{*req.Longitude, *req.Latitude})
+				p.SetSRID(4326)
+				point = &ewkb.Point{Point: p}
+			}
+			place.Coordinates = point
+
+			if err := s.occRepo.UpsertPlace(tx, place, placeName); err != nil {
+				return fmt.Errorf("Repository, UpsertPlace error:%w",err) 
+			}
+				occurrence.PlaceID = &place.PlaceID
 		}
 
-		// --- リスト項目 (Observation など) の更新・追加 ---
-        var observations []*entity.Observation
+		// Observation
+		var observations []*entity.Observation
 		if req.Observations != nil {
 			for _, obsReq := range req.Observations {
 				obs := &entity.Observation{}
-                if obsReq.ObservationID != nil { // IDがあれば既存データを更新
-                    obs.ObservationsID = *obsReq.ObservationID // IDをセットして Save で更新させる
-                }
-				// req の値で obs のフィールドを埋める
-                obs.UserID = obsReq.ObservationUserID
-                obs.ObservationMethodID = obsReq.ObservationMethodID
-                // ...
+				if obsReq.ObservationID != nil {//update existing data
+				    obs.ObservationsID = *obsReq.ObservationID 
+				}
+				obs.UserID = obsReq.ObservationUserID
+				obs.ObservationMethodID = obsReq.ObservationMethodID
+				obs.Behavior = obsReq.Behavior
+				obs.ObservedAt = obsReq.ObservedAt
+				obs.Timezone = formatTimezone(obsReq.ObservedAt)
 				observations = append(observations, obs)
 			}
-			if err := s.occRepo.UpsertObservations(tx, id, observations); err != nil { return err }
+			if err := s.occRepo.UpsertObservations(tx, id, observations); err != nil { return fmt.Errorf("Repository, UpsertObservations error:%w",err) }
 		}
 
-        // Specimen, Identification も同様のロジックでリストを処理...
-        var specimens []*entity.Specimen
-        var makeSpecimens []*entity.MakeSpecimen
-        if req.Specimens != nil {
-            // ... req.Specimens から specimens と makeSpecimens のスライスを作成 ...
-            if err := s.occRepo.UpsertSpecimens(tx, id, specimens, makeSpecimens); err != nil { return err }
-        }
-        var identifications []*entity.Identification
-        if req.Identifications != nil {
-            // ... req.Identifications から identifications のスライスを作成 ...
-            if err := s.occRepo.UpsertIdentifications(tx, id, identifications); err != nil { return err }
-        }
+		// Specimen
+		var specimens []*entity.Specimen
+		var makeSpecimens []*entity.MakeSpecimen
+		if req.Specimens != nil {
+			for _, specReq := range req.Specimens {
+				spec := &entity.Specimen{}
+				if specReq.SpecimenID != nil {
+				    spec.SpecimenID = *specReq.SpecimenID
+				}
+				spec.SpecimenMethodID = specReq.SpecimenMethodsID
+				spec.InstitutionID = specReq.InstitutionID
+				spec.CollectionID = specReq.CollectionID
+				specimens = append(specimens, spec)
 
-		// 最後に Occurrence 自体を保存 (変更があった場合)
+				makeSpec := &entity.MakeSpecimen{}
+
+				makeSpec.UserID = specReq.SpecimenUserID
+				makeSpec.SpecimenMethodID = specReq.SpecimenMethodsID
+				makeSpec.Date = specReq.CreatedAt
+				makeSpec.Timezone = formatTimezone(specReq.CreatedAt)
+				makeSpecimens = append(makeSpecimens, makeSpec)
+			}
+			if err := s.occRepo.UpsertSpecimens(tx, id, specimens, makeSpecimens); err != nil { return fmt.Errorf("Repository, UpsertSpecimens error:%w",err) }
+		}
+
+		// Identification
+		var identifications []*entity.Identification
+		if req.Identifications != nil {
+		    for _, identReq := range req.Identifications {
+			ident := &entity.Identification{}
+			if identReq.IdentificationID != nil {
+			    ident.IdentificationID = *identReq.IdentificationID
+			}
+			ident.UserID = identReq.IdentificationUserID
+			ident.SourceInfo = identReq.SourceInfo
+			ident.IdentificatedAt = identReq.IdentifiedAt
+			ident.Timezone = formatTimezone(identReq.IdentifiedAt)
+			identifications = append(identifications, ident)
+		    }
+		    if err := s.occRepo.UpsertIdentifications(tx, id, identifications); err != nil { return fmt.Errorf("Repository, UpsertIdentifications error:%w",err) }
+		}
+
+		// occurrence repository
 		if err := s.occRepo.UpdateOccurrence(tx, occurrence); err != nil {
 			return err
 		}
 
-		updatedOccurrence = occurrence // 最後に更新されたデータを保持
 		return nil // トランザクション成功
 	})
 
 	if err != nil {
 		return nil, err
 	}
-
-	return updatedOccurrence, nil
+// response latest detail data
+	return s.GetOccurrenceDetail(id)
 }
+
+
+
 
 

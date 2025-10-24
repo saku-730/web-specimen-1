@@ -3,14 +3,10 @@
 package entity
 
 import (
-	"encoding/hex"
-	"encoding/binary"
-	"database/sql/driver"
-	"fmt"
-	"math"
+	"github.com/twpayne/go-geom/encoding/ewkb"
 )
 
-// Point は PostGISの geography(Point,4326) 型をGORMで扱うためのカスタム型
+/*
 type Point struct {
 	Lat *float64
 	Lng *float64
@@ -53,28 +49,6 @@ func (p *Point) Scan(value interface{}) error {
 	return nil
 }
 
-// Scan メソッドはデータベースから値（例: "SRID=4326;POINT(139.7 35.6)")を読み込む時に呼ばれるのだ
-//func (p *Point) Scan(value interface{}) error {
-//	var data []byte
-//	switch v := value.(type) {
-//	case []byte:
-//		data = v
-//	case string:
-//		data = []byte(v)
-//	default:
-//		return fmt.Errorf("unsupported type for Point: %T", value)
-//	}
-//	fmt.Printf("DEBUG: Raw coordinates value from DB = %s\n", string(data)) // ←追加
-//	var lng, lat float64
-//	_, err := fmt.Sscanf(string(data), "SRID=4326;POINT(%f %f)", &lng, &lat)
-//	if err != nil {
-//		return fmt.Errorf("failed to scan point: %w", err)
-//	}
-//	p.Lat = &lat
-//	p.Lng = &lng
-//	return nil
-//}
-
 // Value メソッドはデータベースに値を書き込む時に呼ばれるのだ
 func (p Point) Value() (driver.Value, error) {
 	if p.Lat == nil && p.Lng == nil {
@@ -84,6 +58,7 @@ func (p Point) Value() (driver.Value, error) {
 	fmt.Printf("--- DEBUG: Sending to PostGIS ---> %s\n", pointString)
 	return pointString, nil
 }
+*/
 
 
 
@@ -92,7 +67,7 @@ func (p Point) Value() (driver.Value, error) {
 type Place struct {
 	// --- Table Columns ---
 	PlaceID      uint     `gorm:"primaryKey;column:place_id"`
-	Coordinates  *Point   `gorm:"type:geography(Point,4326);column:coordinates"`
+	Coordinates *ewkb.Point `gorm:"type:geography(Point,4326);column:coordinates"`
 	PlaceNameID  *uint     `gorm:"column:place_name_id"`
 	Accuracy     *float64 `gorm:"column:accuracy"`
 
