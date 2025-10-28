@@ -12,8 +12,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - /login (ログインページ自体)
      */
+    '/',
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };
@@ -30,8 +30,10 @@ export default async function(request: NextRequest) {
   const loginPath = `${safeBasePath}/login`;
   const loginUrl = new URL(loginPath, request.url);
   console.log(`[Proxy] loginUrl: ${loginUrl},basePath: ${basePath},pathname: ${pathname}`);
+  console.log(`[Proxy] loginPath: ${loginPath}`);
 
-  if (pathname === loginPath) {
+  //if (pathname === loginPath) {
+  if (pathname === '/login') {
     console.log('[Proxy] ログインページへのアクセスなので許可します。');
     return NextResponse.next();
   }
