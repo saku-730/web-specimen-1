@@ -25,7 +25,7 @@ export default function middleware(request: NextRequest) {
   const loginUrl = new URL(loginPath, `${origin}${basePath}`);
   console.log(`[Proxy] loginPath: ${loginPath}`)
 
-  if (pathname === loginPath || pathname === `${loginPath}/`) {
+  if (pathname === '/login'|| pathname === `/login/`) {
     console.log('[Proxy] loginページなので認証スキップ')
     return NextResponse.next()
   }
