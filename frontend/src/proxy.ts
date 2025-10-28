@@ -22,8 +22,8 @@ export default function middleware(request: NextRequest) {
   //const loginPath = `${basePath}/login`
  // const loginUrl = new URL(loginPath, request.url)
   const loginPath = isProd ? '/33zu/login' : '/login';
-  const loginUrl = new URL(loginPath, `${origin}${basePath}`);
-  console.log(`[Proxy] loginPath: ${loginPath}`)
+  const loginUrl = new URL(loginPath, origin);
+  console.log(`[Proxy] loginPath: ${loginPath}, loginUrl: ${loginUrl}`)
 
   if (pathname === '/login'|| pathname === `/login/`) {
     console.log('[Proxy] loginページなので認証スキップ')
@@ -41,7 +41,6 @@ export default function middleware(request: NextRequest) {
 
   if (isUnderBasePath) {
     const token = request.cookies.get('token')
-    console.log('[Proxy] proxy func')
     if (!token || !token.value) {
       console.log(`[Proxy] トークンなし → ${loginUrl} にリダイレクト`)
       return NextResponse.redirect(loginUrl)
