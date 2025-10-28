@@ -22,7 +22,7 @@ const LoginForm = () => {
 
     try {
       // 1. Next.js自身が持つAPIルートにリクエストを送るのだ！
-	const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/login`;
+	const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/login`;
         const res = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -38,10 +38,8 @@ const LoginForm = () => {
       expires: 1, // 1日間有効
         // secure: true // 本番環境(https)ではこの行を有効にするのだ
       });
-      localStorage.setItem("token", token); //////////
-      // 2. ログイン成功！クッキーはサーバーがセットしてくれたので、ダッシュボードに移動するだけ！
       router.push("/");
-      router.refresh(); // ⬅️ サーバーの状態を更新するために追加
+      router.refresh();
 
     } catch (err: any) {
       setError(err.message);

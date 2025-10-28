@@ -22,8 +22,7 @@ export default function RootLayout({
     <html lang="ja">
       <body className={`${inter.className} bg-gray-100`}>
         <div className="relative min-h-screen">
-          <Sidebar /> { 
-
+          <Sidebar />  
           {/* メインコンテンツのエリア。
             'pl-20' で、閉じたサイドバーの幅(w-20)と同じだけの左パディングを常に追加するのだ。
           */}
