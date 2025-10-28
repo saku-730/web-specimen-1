@@ -25,7 +25,7 @@ export default function middleware(request: NextRequest) {
 
   const isUnderBasePath =
     pathname === '/' || pathname.startsWith('/')
-  console.log(`[Proxy] pathname-fmt: ${pathname.startsWith('/'))
+  console.log(`[Proxy] pathname-fmt: ${pathname.startsWith('/')}`)
 
   if (isUnderBasePath) {
     const token = request.cookies.get('token')
