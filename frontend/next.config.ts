@@ -1,7 +1,11 @@
-import type { NextConfig } from "next";
+const isProd = process.env.NODE_ENV === 'production';
 
-const nextConfig: NextConfig = {
-  /* config options here */
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  basePath: isProd ? '/33zu' : '' ,
+  assetPrefix: isProd ? '/33zu' : '' ,
+  
+  output: 'standalone',
 };
 
 export default nextConfig;

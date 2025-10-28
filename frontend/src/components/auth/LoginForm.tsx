@@ -21,7 +21,6 @@ const LoginForm = () => {
     setError(null);
 
     try {
-      // 1. Next.js自身が持つAPIルートにリクエストを送るのだ！
 	const apiUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/login`;
         const res = await fetch(apiUrl, {
         method: "POST",

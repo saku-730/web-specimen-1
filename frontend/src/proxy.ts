@@ -3,7 +3,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// このconfigで、ミドルウェアをどのパスで実行するか指定するのだ
+// このconfigで、チェックするパスを指定するのだ
 export const config = {
   matcher: [
     /*
@@ -17,24 +17,37 @@ export const config = {
   ],
 };
 
+// Next.js 16からは、'export default function' を使うのだ！
 export default function(request: NextRequest) {
-  console.log(`[Middleware] middleware auth log: ${request.nextUrl.pathname}`);
-  const { pathname } = request.nextUrl;
+  // request.nextUrl から、現在のパス名と basePath (next.config.jsで設定した値) を取得するのだ
+  const { pathname, basePath } = request.nextUrl;
 
-  // 1. /loginページ自体は、チェックの対象外にするのだ
-  if (pathname.startsWith('/login')) {
+  console.log(`[Proxy] チェック中: ${pathname}`);
+  console.log(`[Proxy] basePath: ${basePath}`);
+
+  const safeBasePath = basePath || '';
+
+  // 1. ログインページのパスを「安全な」basePathを使って動的に作成する
+  const loginPath = `${safeBasePath}/login`;
+  const loginUrl = new URL(loginPath, request.url);
+  // 1. ログインページのパスを動的に作成する
+
+  // 2. /loginページ自体へのアクセスは、そのまま通すのだ
+  if (pathname === loginPath) {
+    console.log('[Proxy] ログインページへのアクセスなので許可します。');
     return NextResponse.next();
   }
 
-  // 2. リクエストからトークンクッキーを取得する
+  // 3. リクエストからトークンクッキーを取得する
   const token = request.cookies.get('token');
 
-  // 3. トークンがなければ、/loginページに追い返す（リダイレクト）！
-  if (!token) {
-    const loginUrl = new URL('/login', request.url);
+  // 4. トークンがなければ、動的に作成したログインURLに追い返す（リダイレクト）！
+  if (!token || !token.value) {
+    console.log(`[Proxy] トークンなし！ ${pathname} から ${loginPath} へリダイレクトします。`);
     return NextResponse.redirect(loginUrl);
   }
 
-  // 4. トークンがあれば、何もしないでそのまま通すのだ
+  // 5. トークンがあれば、何もしないでそのまま通すのだ
+  console.log('[Proxy] トークン確認！アクセスを許可します。');
   return NextResponse.next();
 }
