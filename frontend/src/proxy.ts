@@ -8,8 +8,12 @@ export const config = {
 }
 
 export default function middleware(request: NextRequest) {
-  const basePath = getBasePath()
-  const { pathname } = request.nextUrl
+ // const basePath = getBasePath()
+//  const { pathname } = request.nextUrl
+
+  const basePath = request.nextUrl.basePath; // next.config.ts の basePath が入る
+  const pathname = request.nextUrl.pathname; // basePath は除かれた状態
+
 
   console.log(`[Proxy] pathname: ${pathname}, basePath: ${basePath}`)
 
@@ -22,10 +26,14 @@ export default function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  const isUnderBasePath =
-    pathname === basePath ||
-    pathname === `${basePath}/` ||
-    pathname.startsWith(`${basePath}/`)
+ // const isUnderBasePath =
+//    pathname === basePath ||
+ //   pathname === `${basePath}/` ||
+  //  pathname.startsWith(`${basePath}/`)
+
+  console.log(`[Proxy] loginPath: ${loginPath}`)
+
+  const isUnderBasePath = pathname === '/' || pathname.startsWith('/');
 
   if (isUnderBasePath) {
     const token = request.cookies.get('token')
