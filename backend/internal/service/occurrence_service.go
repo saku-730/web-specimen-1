@@ -770,7 +770,3 @@ func (s *occurrenceService) UpdateOccurrence(id uint, req *model.OccurrenceUpdat
 	return s.GetOccurrenceDetail(id)
 }
 
-
-
-
-
