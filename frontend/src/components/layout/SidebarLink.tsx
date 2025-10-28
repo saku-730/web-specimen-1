@@ -1,5 +1,5 @@
 // src/components/layout/SidebarLink.tsx
-
+import Link from 'next/link';
 import { ReactNode } from "react";
 
 type Props = {
@@ -12,7 +12,7 @@ type Props = {
 
 const SidebarLink = ({ icon, text, href, active, isOpen }: Props) => {
   return (
-    <a
+    <Link
       href={href}
       className={`
         flex items-center p-3 rounded-lg transition-colors
@@ -25,7 +25,7 @@ const SidebarLink = ({ icon, text, href, active, isOpen }: Props) => {
       {icon}
       {/* isOpenがtrueの時だけ、文字を表示する*/}
       {isOpen && <span className="ml-4 whitespace-nowrap">{text}</span>}
-    </a>
+    </Link>
   );
 };
 
