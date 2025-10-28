@@ -11,15 +11,17 @@ export default function middleware(request: NextRequest) {
  // const basePath = getBasePath()
 //  const { pathname } = request.nextUrl
 
-  const basePath = request.nextUrl.basePath; // next.config.ts の basePath が入る
+//  const basePath = request.nextUrl.basePath; // next.config.ts の basePath が入る
   const pathname = request.nextUrl.pathname; // basePath は除かれた状態
 
+  const { origin, basePath } = request.nextUrl;
 
   console.log(`[Proxy] pathname: ${pathname}, basePath: ${basePath}`)
 
   //const loginPath = `${basePath}/login`
   const loginPath = `/login`
-  const loginUrl = new URL(loginPath, request.url)
+ // const loginUrl = new URL(loginPath, request.url)
+  const loginUrl = new URL(loginPath, `${origin}${basePath}`);
   console.log(`[Proxy] loginPath: ${loginPath}`)
 
   if (pathname === loginPath || pathname === `${loginPath}/`) {
