@@ -29,6 +29,7 @@ export default function middleware(request: NextRequest) {
 
   if (isUnderBasePath) {
     const token = request.cookies.get('token')
+    console.log('[Proxy] proxy func')
     if (!token || !token.value) {
       console.log(`[Proxy] トークンなし → ${loginUrl} にリダイレクト`)
       return NextResponse.redirect(loginUrl)
