@@ -18,6 +18,7 @@ export default function middleware(request: NextRequest) {
 
   console.log(`[Proxy] pathname: ${pathname}, basePath: ${basePath}`)
 
+  const isProd = process.env.NODE_ENV === 'production';
   //const loginPath = `${basePath}/login`
  // const loginUrl = new URL(loginPath, request.url)
   const loginPath = isProd ? '/33zu/login' : '/login';
