@@ -3,38 +3,30 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|login).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 }
 
 export default function middleware(request: NextRequest) {
   const { pathname, basePath, origin } = request.nextUrl
   const isProd = process.env.NODE_ENV === 'production'
 
-  // 本番は /33zu/login、開発は /login
-  const loginPath = isProd ? '/33zu/login' : '/login'
+  // basePath を使って loginPath を動的生成
+  const loginPath = `${basePath}/login`
   const loginUrl = new URL(loginPath, origin)
-
-  console.log(`[Proxy] pathname: ${pathname}, basePath: ${basePath}`)
   console.log(`[Proxy] loginPath: ${loginPath}, loginUrl: ${loginUrl}`)
 
-  // login ページ自体はスキップ
-  if (pathname === '/login' || pathname === '/login/') {
-    console.log('[Proxy] loginページなので認証スキップ')
+  // login ページは認証スキップ
+  if (pathname === loginPath || pathname === `${loginPath}/`) {
     return NextResponse.next()
   }
 
-  const isUnderBasePath =
-    pathname === '/' || pathname.startsWith('/')
-  console.log(`[Proxy] pathname-fmt: ${pathname.startsWith('/')}`)
-
-  if (isUnderBasePath) {
+  // basePath 以下のパスは token がなければ login にリダイレクト
+  if (pathname.startsWith(basePath)) {
     const token = request.cookies.get('token')
     if (!token || !token.value) {
-      console.log(`[Proxy] トークンなし → ${loginUrl} にリダイレクト`)
       return NextResponse.redirect(loginUrl)
     }
   }
 
-  console.log('[Proxy] 認証OK or basePath外 → 通過')
   return NextResponse.next()
 }
