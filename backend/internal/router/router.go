@@ -11,6 +11,7 @@ import (
 func SetupRouter(
 	authHandler handler.AuthHandler,
 	occHandler handler.OccurrenceHandler,
+	spcMethodHandler handler.SpecimenMethodHandler,
 	authMiddleware middleware.AuthMiddleware,
 
 )*gin.Engine {
@@ -37,6 +38,7 @@ func SetupRouter(
 			secure.GET("/search", occHandler.SearchPage)
 			secure.GET("/occurrences/:occurrence_id", occHandler.GetOccurrenceDetail)
 			secure.PUT("/occurrences/:occurrence_id", occHandler.UpdateOccurrence)
+			secure.GET("/specimen", spcMethodHandler.GetALL)
 		}
 
 	}
