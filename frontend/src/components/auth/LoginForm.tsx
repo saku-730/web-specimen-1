@@ -35,7 +35,7 @@ const LoginForm = () => {
       const token = data.token;
       Cookies.set('token', token, { 
       expires: 1, // 1日間有効
-        // secure: true // 本番環境(https)ではこの行を有効にするのだ
+        // secure: true
       });
       router.push("/");
       router.refresh();

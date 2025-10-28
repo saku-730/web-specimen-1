@@ -23,9 +23,9 @@ export default function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // basePath 直下 /33zu またはサブパス /33zu/... を認証対象に
   const isUnderBasePath =
     pathname === '/' || pathname.startsWith('/')
+  console.log(`[Proxy] pathname-fmt: ${pathname.startsWith('/'))
 
   if (isUnderBasePath) {
     const token = request.cookies.get('token')
