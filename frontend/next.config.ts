@@ -6,6 +6,7 @@ const nextConfig = {
   assetPrefix: isProd ? '/33zu/' : '' ,
   
   output: 'standalone',
+  trailingSlash: true,
 };
 
 export default nextConfig;
