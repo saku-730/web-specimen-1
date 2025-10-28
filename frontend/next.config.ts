@@ -2,8 +2,8 @@ const isProd = process.env.NODE_ENV === 'production';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  basePath: isProd ? '/33zu' : '' ,
-  assetPrefix: isProd ? '/33zu/' : '' ,
+  basePath: isProd ? '' : '' ,
+  assetPrefix: isProd ? '' : '' ,
   
   output: 'standalone',
 };
