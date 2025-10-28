@@ -30,7 +30,6 @@ export default function(request: NextRequest) {
   // 1. ログインページのパスを「安全な」basePathを使って動的に作成する
   const loginPath = `${safeBasePath}/login`;
   const loginUrl = new URL(loginPath, request.url);
-  // 1. ログインページのパスを動的に作成する
 
   // 2. /loginページ自体へのアクセスは、そのまま通すのだ
   if (pathname === loginPath) {
