@@ -19,8 +19,8 @@ export default function middleware(request: NextRequest) {
   console.log(`[Proxy] pathname: ${pathname}, basePath: ${basePath}`)
 
   //const loginPath = `${basePath}/login`
-  const loginPath = `/login`
  // const loginUrl = new URL(loginPath, request.url)
+  const loginPath = isProd ? '/33zu/login' : '/login';
   const loginUrl = new URL(loginPath, `${origin}${basePath}`);
   console.log(`[Proxy] loginPath: ${loginPath}`)
 
