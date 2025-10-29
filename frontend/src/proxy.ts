@@ -33,7 +33,7 @@ export default async function(request: NextRequest) {
   console.log(`[Proxy] loginPath: ${loginPath}`);
 
   //if (pathname === loginPath) {
-  if (pathname === '/login') {
+  if (pathname === '/login' || pathname === '/login/') {
     console.log('[Proxy] ログインページへのアクセスなので許可します。');
     return NextResponse.next();
   }

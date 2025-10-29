@@ -1084,25 +1084,6 @@ components:
           type: integer
           example: 1
           readOnly: true
-        specimen_user_id:
-          type: integer
-          example: 1
-        specimen_user:
-          type: string
-          example: "admin"
-        specimen_methods_id:
-          type: integer
-          example: 1
-        specimen_methods_common:
-          type: string
-          example: "Dried"
-        created_at:
-          type: string
-          format: date-time
-          example: "2024-12-31T23:59:59Z"
-        page_id:
-          type: integer
-          example: 1
         institution_id:
           type: integer
           example: 1
@@ -1112,6 +1093,32 @@ components:
         collection_id:
           type: string
           example: "C-001"
+        specimen_methods:
+          type: array
+          description: "list of specimen methods"
+          items:
+            type: object
+            properties:
+              specimen_user_id:
+                type: integer
+                example: 1
+              specimen_user:
+                type: string
+                example: "admin"
+              specimen_methods_id:
+                type: integer
+                example: 1
+              specimen_methods_common:
+                type: string
+                example: "Dried"
+              created_at:
+                type: string
+                format: date-time
+                example: "2024-12-31T23:59:59Z"
+              page_id:
+                type: integer
+                example: 1
+
     Full_identification:
       type: object
       properties:
