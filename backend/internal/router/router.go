@@ -12,6 +12,9 @@ func SetupRouter(
 	authHandler handler.AuthHandler,
 	occHandler handler.OccurrenceHandler,
 	userHandler handler.UserHandler,
+
+	projectHandler handler.ProjectHandler,
+
 	spcMethodHandler handler.SpecimenMethodHandler,
 	authMiddleware middleware.AuthMiddleware,
 
@@ -41,6 +44,8 @@ func SetupRouter(
 			secure.PUT("/occurrences/:occurrence_id", occHandler.UpdateOccurrence)
 
 			secure.GET("/user", userHandler.GetAll)
+
+			secure.GET("/project", projectHandler.GetAll)
 
 			secure.GET("/specimen", spcMethodHandler.GetAll)
 		}

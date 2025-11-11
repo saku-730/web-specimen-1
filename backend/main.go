@@ -48,16 +48,25 @@ func main() {
 	attachmentRepo := repository.NewAttachmentRepository()
 	attachmentGroupRepo := repository.NewAttachmentGroupRepository()
 	fileExtensionRepo := repository.NewFileExtensionRepository()
+
+	projectRepo := repository.NewProjectRepository(db)
+
 	specMethodRepo := repository.NewSpecimenMethodRepository(db)
 
 	// Service層を初期化
 	authService := service.NewAuthService(userRepo,cfg)
 	occService := service.NewOccurrenceService(db,occRepo,userDefaultsRepo,attachmentRepo,attachmentGroupRepo,fileExtensionRepo)
+
+	projectService := service.NewProjectService(projectRepo)
+
 	specMethodService := service.NewSpecimenMethodService(specMethodRepo)
 
 	// Handler層を初期化
 	authHandler := handler.NewAuthHandler(authService)
 	occHandler := handler.NewOccurrenceHandler(occService)
+
+	projectHandler := handler.NewProjectHandler(projectService)
+
 	speMethodHandler := handler.NewSpecimenMethodHandler(specMethodService)
 
 	// Middlreware
@@ -68,6 +77,7 @@ func main() {
 	appRouter := router.SetupRouter(
 		authHandler,
 		occHandler,
+		projectHandler,
 		speMethodHandler,
 		authMiddleware,
 	)

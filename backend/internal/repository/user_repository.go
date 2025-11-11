@@ -8,11 +8,7 @@ import (
 
 type UserRepository interface {
 	FindByEmail(email string) (*entity.User, error)
-<<<<<<< HEAD
 	FindAll() ([]entity.User, error)
-=======
-	FindAll() ([]entity.User, error) // ⬅️ この行を追加！
->>>>>>> 37363e42383e57a25efcbf8ce90497b61e2f2819
 }
 
 type userRepository struct {
@@ -31,10 +27,6 @@ func (r *userRepository) FindByEmail(email string) (*entity.User, error) {
 	return &user, nil
 }
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 37363e42383e57a25efcbf8ce90497b61e2f2819
 func (r *userRepository) FindAll() ([]entity.User, error) {
 	var users []entity.User
 	// レスポンスでRole名を返すために、UserRoleをPreload(事前読み込み)するのが大事なのだ！

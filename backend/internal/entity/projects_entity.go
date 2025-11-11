@@ -11,10 +11,10 @@ type Project struct {
 	// --- Table Columns ---
 	ProjectID    uint       `gorm:"primaryKey;column:project_id"`
 	ProjectName  *string     `gorm:"column:project_name;not null"`
-	Disscription *string    `gorm:"column:disscription"`
-	StartDay     *time.Time `gorm:"column:start_day"`
-	FinishedDay  *time.Time `gorm:"column:finished_day"`
-	UpdatedDay   *time.Time `gorm:"column:updated_day"`
+	Description *string    `gorm:"column:disscription"`
+	StartDate     *time.Time `gorm:"column:start_day"`
+	FinishedDate  *time.Time `gorm:"column:finished_day"`
+	UpdatedDate   *time.Time `gorm:"column:updated_day"`
 	Note         *string    `gorm:"column:note"`
 
 	// --- Relationships ---
