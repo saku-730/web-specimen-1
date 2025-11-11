@@ -8,6 +8,7 @@ import (
 
 type UserRepository interface {
 	FindByEmail(email string) (*entity.User, error)
+	FindAll() ([]entity.User, error)
 }
 
 type userRepository struct {
@@ -24,4 +25,13 @@ func (r *userRepository) FindByEmail(email string) (*entity.User, error) {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (r *userRepository) FindAll() ([]entity.User, error) {
+	var users []entity.User
+	// レスポンスでRole名を返すために、UserRoleをPreload(事前読み込み)するのが大事なのだ！
+	if err := r.db.Preload("UserRole").Find(&users).Error; err != nil {
+		return nil, err
+	}
+	return users, nil
 }
