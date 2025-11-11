@@ -2,7 +2,10 @@
 package service
 
 import (
+<<<<<<< HEAD
 	"fmt"
+=======
+>>>>>>> 37363e42383e57a25efcbf8ce90497b61e2f2819
 	"github.com/saku-730/web-specimen/backend/internal/model"
 	"github.com/saku-730/web-specimen/backend/internal/repository"
 )
@@ -26,7 +29,11 @@ func (s *userService) GetAllUsers() ([]model.UserResponse, error) {
 	// 1. リポジトリからDBの生データを取得
 	users, err := s.userRepo.FindAll()
 	if err != nil {
+<<<<<<< HEAD
 		return nil, fmt.Errorf("Repository, FindAll error:%w",err)
+=======
+		return nil, err
+>>>>>>> 37363e42383e57a25efcbf8ce90497b61e2f2819
 	}
 
 	// 2. entityからレスポンス用のmodelに変換（マッピング）する
